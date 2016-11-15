@@ -22,11 +22,16 @@ val _ = printJSON j
 
 val _ = print "\n"
 
-
-(*   { "a" : "A", "b" : { "b1" : "B1", "b2" : "B2"}, "c" : ["c1", "c2"], "d" : "D" }   *)
-val s = "{ \"a\" : \"A\", \"b\" : { \"b1\" : \"B1\", \"b2\" : \"B2\"}, \"c\" : [\"c1\", \"c2\"], \"d\" : \"D\" }"
+(*   { "a" : "A", "b" : { "b1" : "B1", "b2" : "B2" }, "c" : [ "c1", "c2" ], "d" : "D" }   *)
+val s = "{ \"a\" : \"A\", \"b\" : { \"b1\" : \"B1\", \"b2\" : \"B2\" }, \"c\" : [ \"c1\", \"c2\" ], \"d\" : \"D\" }"
+(*
+val s = "{ \"b\" : { \"b1\" : \"B1\"}, \"c\" : [\"c1\"] }"
+val s = "{ \"b\" : [\"c1\"] }"
+*)
 val ts = case Lexer.lex s of 
-              NONE => ( print "NONE\n" ;raise Json)
-            | SOME (ts, t) => ( print (Lexer.show ts); print ("\nTAIL: "  ^ t ^ "\n\n") )
+              NONE => ( print "NONE\n"; raise Json "lexer")
+            | SOME (ts, t) => ( print (Lexer.show ts); print ("\nTAIL: "  ^ t ^ "\n\n"); ts )
 
-(* val (j, _)  = parse jl *)
+val (j, _)  = parse ts
+val _ = print (s ^ "\n")
+val _ = printJSON j

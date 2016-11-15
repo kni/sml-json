@@ -1,7 +1,7 @@
 structure JSON =
 struct
 
-  exception Json
+  exception Json of string
 
   datatype Value = Object of (string * Value) list 
                  | Array of Value list
@@ -107,7 +107,7 @@ struct
     structure L = Lexer
     local
 
-      fun ht []      = raise Json
+      fun ht []      = raise Json "ht"
         | ht (x::xs) = (x, xs)
       
       fun parse (ts:L.Token list) : (Value * L.Token list) =
@@ -118,7 +118,7 @@ struct
                L.StartObj => let val (v, ts) = parseObj ts in ( (Object v), ts) end
              | L.StartArr => let val (v, ts) = parseArr ts in ( (Array v),  ts) end
              | L.String s => ( (String s), ts)
-             | _        => raise Json
+             | _        => raise Json "parse"
         end
       
       and parseObj (ts:L.Token list) : ((string * Value) list * L.Token list) =
@@ -127,7 +127,7 @@ struct
         in
           if k = L.EndObj then ([], ts) else
           let 
-            val k = case k of L.String s => s | _ =>  raise Json 
+            val k = case k of L.String s => s | _ => raise Json "parseObj"
             val (v, ts) = parse ts
           in
             if null ts
@@ -138,9 +138,9 @@ struct
       
       and parseArr (ts:L.Token list) : (Value list * L.Token list) =
         let
-          val (v, _) = ht ts
+          val (v, ts') = ht ts
         in
-          if v = L.EndArr then ([], ts) else
+          if v = L.EndArr then ([], ts') else
           let
             val (v, ts) = parse ts
           in
