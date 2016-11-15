@@ -30,7 +30,7 @@ struct
                    ToDo *)
 
     (* Принимает строку. Возвращает список токенов и хвост. *)
-    fun lexer s =
+    fun lex s =
       let
 
         fun tail tokens getc strm =
@@ -98,7 +98,6 @@ struct
       fun ht []      = raise Json
         | ht (x::xs) = (x, xs)
       
-      
       fun parse (ts:L.Token list) : (Value * L.Token list) =
         let
           val (k, ts) = ht ts
@@ -109,7 +108,6 @@ struct
              | L.String s => ( (String s), ts)
              | _        => raise Json
         end
-      
       
       and parseObj (ts:L.Token list) : ((string * Value) list * L.Token list) =
         let
@@ -126,7 +124,6 @@ struct
           end
         end
       
-      
       and parseArr (ts:L.Token list) : (Value list * L.Token list) =
         let
           val (v, _) = ht ts
@@ -140,7 +137,6 @@ struct
             else let val (z, ts) = parseArr(ts) in (v::z, ts) end
           end
         end
-
     in
       val parse = parse
     end

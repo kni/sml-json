@@ -22,8 +22,8 @@ val s2 = "1\", \"A2\"]}"
 val s = s1 ^ s2
 
 (* val _ = print (s1 ^ "\n" ^ s2 ^ "\n\n" ^ s ^ "\n\n-----\n\n") *)
-val r = lexer s1
+val r = lex s1
 val _ = showLexerResult r
-val _ = case r of NONE => () | SOME (_, t) => let val r = lexer (t ^ s2) in print "\n" ; showLexerResult r end
+val _ = case r of NONE => () | SOME (_, t) => let val r = lex (t ^ s2) in print "\n" ; showLexerResult r end
 
-val _ = showLexerResult (lexer s)
+val _ = showLexerResult (lex s)
