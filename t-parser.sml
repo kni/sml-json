@@ -17,17 +17,16 @@ val _ = printJSON j
 val (j, ts) = parse ts
 val _ = printJSON j
 
-
 val j = Object [ ("ab\"c", Array [String "A1", String "A2"] ) ]
 val _ = printJSON j
 
+val _ = print "\n"
 
-
-fun showLexerResult r = case r of NONE => () | SOME (ts, t) => ( print (Lexer.show ts); print ("\nTAIL: "  ^ t ^ "\n\n"))
 
 (*   { "a" : "A", "b" : { "b1" : "B1", "b2" : "B2"}, "c" : ["c1", "c2"], "d" : "D" }   *)
-val js = "{ \"a\" : \"A\", \"b\" : { \"b1\" : \"B1\", \"b2\" : \"B2\"}, \"c\" : [\"c1\", \"c2\"], \"d\" : \"D\" }"
-val _ = showLexerResult (Lexer.lex js)
-val jl = case Lexer.lex js of NONE => raise Json | SOME (jl, t) => jl
+val s = "{ \"a\" : \"A\", \"b\" : { \"b1\" : \"B1\", \"b2\" : \"B2\"}, \"c\" : [\"c1\", \"c2\"], \"d\" : \"D\" }"
+val ts = case Lexer.lex s of 
+              NONE => ( print "NONE\n" ;raise Json)
+            | SOME (ts, t) => ( print (Lexer.show ts); print ("\nTAIL: "  ^ t ^ "\n\n") )
 
 (* val (j, _)  = parse jl *)
