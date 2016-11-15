@@ -107,7 +107,7 @@ struct
     structure L = Lexer
     local
 
-      fun ht []      = raise Json "ht"
+      fun ht []      = raise Json "parse ht"
         | ht (x::xs) = (x, xs)
       
       fun parse (ts:L.Token list) : (Value * L.Token list) =
@@ -127,7 +127,7 @@ struct
         in
           if k = L.EndObj then ([], ts) else
           let 
-            val k = case k of L.String s => s | _ => raise Json "parseObj"
+            val k = case k of L.String s => s | _ => raise Json "parse Obj"
             val (v, ts) = parse ts
           in
             if null ts
