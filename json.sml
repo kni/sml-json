@@ -78,7 +78,18 @@ struct
         StringCvt.scanString (scan []) s
       end
 
+    fun show ts =
+      let
+        fun show' StartObj   = "StartObj"
+          | show' EndObj     = "EndObj"
+          | show' StartArr   = "StartArr"
+          | show' EndArr     = "EndArr"
+          | show' (String s) = ("String \"" ^ s ^ "\"")
+      in
+        String.concatWith ", " (List.map show' ts)
+      end
   end
+
 
   fun show (Object l) = "{ " ^ (String.concatWith ", " (List.map (fn(k,v) => ("\"" ^ String.toCString k) ^ "\"" ^ " : " ^ (show v) ) l)) ^ " }"
     | show (Array  l) = "[ " ^ (String.concatWith ", " (List.map show l)) ^ " ]"
@@ -89,6 +100,7 @@ struct
     | show (False   ) = "False"
     | show (Null    ) = "Null"
   *)
+
 
   structure Parser =
   struct
