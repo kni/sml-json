@@ -28,6 +28,68 @@ struct
                    | False 
                    | Null
                    ToDo *)
+    fun lexer s =
+      let
+
+        fun tail tokens getc strm =
+          let
+            fun loop cs strm = case getc strm of
+                NONE           => SOME (((List.rev tokens), String.implode(List.rev cs)), strm)
+              | SOME (c, strm) => loop (c::cs) strm
+          in
+              loop [] strm
+          end
+
+        fun pure tokens strm = SOME (((List.rev tokens), ""), strm)
+
+        fun scanString getc strm =
+          let
+            fun loop cs strm = 
+              case getc strm of NONE => NONE | SOME (c, strm) =>
+              case c of
+                   #"\\" => (case getc strm of NONE => NONE | SOME (c', strm) => loop (c'::c::cs) strm)
+                 | #"\"" => let val s = String.implode(List.rev cs) in SOME (s, strm) end
+                 | _     => loop (c::cs) strm
+          in
+            loop [] strm
+          end
+
+        val scanNumber = IEEEReal.scan
+
+        fun scan tokens getc strm =
+          let
+            val strm = StringCvt.skipWS getc strm
+          in
+            case getc strm of NONE => pure tokens strm | SOME (c, strm_n) =>
+            case c of
+                 #"{"  => scan (StartObj::tokens) getc strm_n
+               | #"}"  => scan (EndObj::tokens) getc strm_n
+               | #"["  => scan (StartArr::tokens) getc strm_n
+               | #"]"  => scan (EndArr::tokens) getc strm_n
+               | #":"  => scan tokens getc strm_n
+               | #"\"" => (case scanString getc strm_n of NONE => tail tokens getc strm | SOME (s, strm_n) => scan ((String s)::tokens) getc strm_n)
+               | #","  => scan tokens getc strm_n
+               | _     => tail tokens getc strm
+          end
+
+      in
+        StringCvt.scanString (scan []) s
+      end
+
+      fun showLexerResult r =
+        let
+          fun showToken StartObj   = print "StartObj"
+            | showToken EndObj     = print "EndObj"
+            | showToken StartArr   = print "StartArr"
+            | showToken EndArr     = print "EndArr"
+            | showToken (String s) = print ("String \"" ^ s ^ "\"")
+
+          fun showTokens [] = ()
+            | showTokens (t::ts) = ( showToken t ; print ", "; showTokens ts )
+        in
+          case r of NONE => () | SOME (ts, t) => ( showTokens ts ; print ("TAIL: "  ^ t ^ "\n"))
+        end
+
   end
 
   fun show (Object l) = "{ " ^ (String.concatWith ", " (List.map (fn(k,v) => ("\"" ^ String.toCString k) ^ "\"" ^ " : " ^ (show v) ) l)) ^ " }"
@@ -105,8 +167,24 @@ val s = String "s"
 val l = Lexer.String "s"
 
 local open Lexer in
-val ts = [StartObj, String "a", String "b", EndObj, StartObj, String "c", String "d", EndObj]
+
+  (* Принимает строку. Возвращает список токенов и хвост.  *)
+
+  val s1 = " {\"ab\\\"c\" : [\"A"
+  val s2 = "1\", \"A2\"]}"
+  val s = s1 ^ s2
+
+  (* val _ = print (s1 ^ "\n" ^ s2 ^ "\n\n" ^ s ^ "\n\n-----\n\n") *)
+  val r = lexer s1
+  val _ = showLexerResult r
+  val _ = case r of NONE => () | SOME (_, t) => let val r = lexer (t ^ s2) in print "\n" ; showLexerResult r end
+
+  val _ = showLexerResult (lexer s)
+  val _ = print "\n\n\n"
+
+  val ts = [StartObj, String "a", String "b", EndObj, StartObj, String "c", String "d", EndObj]
 end
+
 
 open Parser
 val (j, ts) = parse ts
