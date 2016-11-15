@@ -28,6 +28,8 @@ struct
                    | False 
                    | Null
                    ToDo *)
+
+    (* Принимает строку. Возвращает список токенов и хвост. *)
     fun lexer s =
       let
 
@@ -75,20 +77,6 @@ struct
       in
         StringCvt.scanString (scan []) s
       end
-
-      fun showLexerResult r =
-        let
-          fun showToken StartObj   = print "StartObj"
-            | showToken EndObj     = print "EndObj"
-            | showToken StartArr   = print "StartArr"
-            | showToken EndArr     = print "EndArr"
-            | showToken (String s) = print ("String \"" ^ s ^ "\"")
-
-          fun showTokens [] = ()
-            | showTokens (t::ts) = ( showToken t ; print ", "; showTokens ts )
-        in
-          case r of NONE => () | SOME (ts, t) => ( showTokens ts ; print ("TAIL: "  ^ t ^ "\n"))
-        end
 
   end
 
@@ -159,42 +147,3 @@ struct
   end
 
 end
-
-
-open JSON
-
-val s = String "s"
-val l = Lexer.String "s"
-
-local open Lexer in
-
-  (* Принимает строку. Возвращает список токенов и хвост.  *)
-
-  val s1 = " {\"ab\\\"c\" : [\"A"
-  val s2 = "1\", \"A2\"]}"
-  val s = s1 ^ s2
-
-  (* val _ = print (s1 ^ "\n" ^ s2 ^ "\n\n" ^ s ^ "\n\n-----\n\n") *)
-  val r = lexer s1
-  val _ = showLexerResult r
-  val _ = case r of NONE => () | SOME (_, t) => let val r = lexer (t ^ s2) in print "\n" ; showLexerResult r end
-
-  val _ = showLexerResult (lexer s)
-  val _ = print "\n\n\n"
-
-  val ts = [StartObj, String "a", String "b", EndObj, StartObj, String "c", String "d", EndObj]
-end
-
-
-open Parser
-val (j, ts) = parse ts
-val (j, ts) = parse ts
-
-
-fun printJSON j = print ((show j) ^ "\n")
-
-val j = Object [ ("ab\"c", Array [String "A1", String "A2"] ) ]
-val _ = printJSON j
-
-
-val _ = print "The End\n"
