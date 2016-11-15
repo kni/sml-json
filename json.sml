@@ -30,6 +30,16 @@ struct
                    ToDo *)
   end
 
+  fun show (Object l) = "{ " ^ (String.concatWith ", " (List.map (fn(k,v) => ("\"" ^ String.toCString k) ^ "\"" ^ " : " ^ (show v) ) l)) ^ " }"
+    | show (Array  l) = "[ " ^ (String.concatWith ", " (List.map show l)) ^ " ]"
+    | show (String s) = "\"" ^ String.toCString s ^ "\""
+  (*
+    | show (Number n) = IEEEReal.toString n
+    | show (True    ) = "True"
+    | show (False   ) = "False"
+    | show (Null    ) = "Null"
+  *)
+
   structure Parser =
   struct
     structure L = Lexer
@@ -101,5 +111,12 @@ end
 open Parser
 val (j, ts) = parse ts
 val (j, ts) = parse ts
+
+
+fun printJSON j = print ((show j) ^ "\n")
+
+val j = Object [ ("ab\"c", Array [String "A1", String "A2"] ) ]
+val _ = printJSON j
+
 
 val _ = print "The End\n"

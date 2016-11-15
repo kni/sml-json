@@ -21,8 +21,6 @@ fun showTokens [] = ()
 
 fun showLexerResult r = case r of NONE => () | SOME (ts, t) => ( showTokens ts ; print ("TAIL: "  ^ t ^ "\n"))
 
-fun showChar c = print (Char.toString c)
-
 fun showTail getc strm =
 let
   fun loop cs strm = case getc strm of
@@ -83,38 +81,9 @@ in
 end
 
 
-(*
 val r = lexer s1
 val _ = showLexerResult r
 val _ = case r of NONE => () | SOME (_, t) => let val r = lexer (t ^ s2) in print "\n" ; showLexerResult r end
-*)
 
 
-(* val _ = showLexerResult (lexer s) *)
-
-
-(* ******************************************************** *)
-
-datatype jValue = jObject of (string * jValue) list 
-               | jArray of jValue list
-               | jString of string
-               | jNumber of IEEEReal.decimal_approx
-               | jTrue
-               | jFalse 
-               | jNull
-
-
-fun showJSON (jObject l) = "{ " ^ (String.concatWith ", " (List.map (fn(k,v) => ("\"" ^ String.toCString k) ^ "\"" ^ " : " ^ (showJSON v) ) l)) ^ " }"
-  | showJSON (jArray  l) = "[ " ^ (String.concatWith ", " (List.map showJSON l)) ^ " ]"
-  | showJSON (jString s) = "\"" ^ String.toCString s ^ "\""
-  | showJSON (jNumber n) = IEEEReal.toString n
-  | showJSON (jTrue    ) = "True"
-  | showJSON (jFalse   ) = "False"
-  | showJSON (jNull    ) = "Null"
-
-fun printJSON j = print ((showJSON j) ^ "\n")
-
-(*
-val j = jObject [ ("ab\"c", jArray [jString "A1", jString "A2"] ) ]
-val _ = printJSON j
-*)
+val _ = showLexerResult (lexer s)
