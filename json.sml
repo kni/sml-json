@@ -1,4 +1,34 @@
-structure JSON =
+signature JSON =
+sig
+  exception Json of string
+
+  structure Lexer:
+  sig
+    datatype Token = EndArr
+                   | EndObj
+                   | StartArr
+                   | StartObj
+                   | String of string
+
+    val lex:  string -> (Token list * string) option
+    val show: Token list -> string
+  end
+
+  datatype Value = Array  of Value list
+                 | Object of (string * Value) list
+                 | String of string
+
+  val decode: string -> Value
+  val encode: Value -> string
+  val show:   Value -> string
+
+  structure Parser:
+  sig
+    val parse: Lexer.Token list -> Value * Lexer.Token list
+  end
+end
+
+structure JSON :> JSON =
 struct
 
   exception Json of string
@@ -65,9 +95,9 @@ struct
             case getc strm of NONE => pure tokens strm | SOME (c, strm_n) =>
             case c of
                  #"{"  => scan (StartObj::tokens) getc strm_n
-               | #"}"  => scan (EndObj::tokens) getc strm_n
+               | #"}"  => scan (EndObj::tokens)   getc strm_n
                | #"["  => scan (StartArr::tokens) getc strm_n
-               | #"]"  => scan (EndArr::tokens) getc strm_n
+               | #"]"  => scan (EndArr::tokens)   getc strm_n
                | #":"  => scan tokens getc strm_n
                | #"\"" => (case scanString getc strm_n of NONE => tail tokens getc strm | SOME (s, strm_n) => scan ((String s)::tokens) getc strm_n)
                | #","  => scan tokens getc strm_n
@@ -91,11 +121,22 @@ struct
   end
 
 
-  fun show (Object l) = "{ " ^ (String.concatWith ", " (List.map (fn(k,v) => ("\"" ^ String.toCString k) ^ "\"" ^ " : " ^ (show v) ) l)) ^ " }"
-    | show (Array  l) = "[ " ^ (String.concatWith ", " (List.map show l)) ^ " ]"
-    | show (String s) = "\"" ^ String.toCString s ^ "\""
+  fun encode (Object l) = "{ " ^ (String.concatWith ", " (List.map (fn(k,v) => ("\"" ^ String.toCString k) ^ "\"" ^ " : " ^ (encode v) ) l)) ^ " }"
+    | encode (Array  l) = "[ " ^ (String.concatWith ", " (List.map encode l)) ^ " ]"
+    | encode (String s) = "\"" ^ String.toCString s ^ "\""
   (*
-    | show (Number n) = IEEEReal.toString n
+    | encode (Number n) = IEEEReal.toString n
+    | encode (True    ) = "True"
+    | encode (False   ) = "False"
+    | encode (Null    ) = "Null"
+  *)
+
+
+  fun show (Object l) = "Object [" ^ (String.concatWith ", " (List.map (fn(k,v) => ("(\"" ^ String.toCString k) ^ "\"" ^ ", " ^ (show v) ^ ")" ) l)) ^ "]"
+    | show (Array  l) = "Array [" ^ (String.concatWith ", " (List.map show l)) ^ "]"
+    | show (String s) = "String \"" ^ String.toCString s ^ "\""
+  (*
+    | show (Number n) = "Number " ^ IEEEReal.toString n
     | show (True    ) = "True"
     | show (False   ) = "False"
     | show (Null    ) = "Null"
@@ -115,10 +156,10 @@ struct
           val (k, ts) = ht ts
         in
           case k of
-               L.StartObj => let val (v, ts) = parseObj ts in ( (Object v), ts) end
-             | L.StartArr => let val (v, ts) = parseArr ts in ( (Array v),  ts) end
-             | L.String s => ( (String s), ts)
-             | _        => raise Json "parse"
+               L.StartObj => let val (v, ts) = parseObj ts in ((Object v), ts) end
+             | L.StartArr => let val (v, ts) = parseArr ts in ((Array v),  ts) end
+             | L.String s => ((String s), ts)
+             | _          => raise Json "parse"
         end
       
       and parseObj (ts:L.Token list) : ((string * Value) list * L.Token list) =
@@ -154,4 +195,7 @@ struct
     end
   end
 
+  fun decode s = case Lexer.lex s of 
+                      NONE         => raise Json "lexer"
+                    | SOME (ts, _) => let val (j, _) = Parser.parse ts in j end
 end
