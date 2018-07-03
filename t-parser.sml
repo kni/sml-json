@@ -44,3 +44,16 @@ val _ = is (decodeAndEncode s) s "decodeAndEncode"
 
 val j = Object [("a", String "A"), ("b", Object [("b1", String "B1")]), ("c", Array [String "c1"])]
 val _ = is (encode j) s "encode"
+
+val _ = print "\n"
+
+
+val s = "{ \"num\" : 0, \"bt\" : true, \"bf\" : false, \"nl\" : null }"
+val e = "{ \"num\" : 0.0, \"bt\" : true, \"bf\" : false, \"nl\" : null }"
+val _ = is (decodeAndEncode s) e "num, bool, null"
+
+val s = "{ \"num\" : 1.2, \"bt\" : true, \"bf\" : false, \"nl\" : null }"
+val e = "{ \"num\" : 0.12E1, \"bt\" : true, \"bf\" : false, \"nl\" : null }"
+val _ = is (decodeAndEncode s) e "num, bool, null"
+
+(* val _ = print (decodeAndEncode s) *)

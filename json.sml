@@ -9,6 +9,9 @@ sig
                    | StartArr
                    | StartObj
                    | String of string
+                   | Number of IEEEReal.decimal_approx
+                   | Bool   of bool
+                   | Null
 
     val lex:  string -> (Token list * string) option
     val show: Token list -> string
@@ -17,6 +20,9 @@ sig
   datatype Value = Array  of Value list
                  | Object of (string * Value) list
                  | String of string
+                 | Number of IEEEReal.decimal_approx
+                 | Bool   of bool
+                 | Null
 
   structure Parser:
   sig
@@ -25,7 +31,7 @@ sig
 
   val decode: string -> Value
   val encode: Value -> string
-  val show:   Value -> string
+  val show:   Value -> string (* produce SML code *)
 end
 
 structure JSON :> JSON =
@@ -33,17 +39,12 @@ struct
 
   exception Json of string
 
-  datatype Value = Object of (string * Value) list 
-                 | Array of Value list
+  datatype Value = Object of (string * Value) list
+                 | Array  of Value list
                  | String of string
-                 (*
                  | Number of IEEEReal.decimal_approx
-                 | Int of int
-                 | Real of real
-                 | True
-                 | False 
+                 | Bool   of bool
                  | Null
-                 ToDo *)
 
   structure Lexer =
   struct
@@ -51,15 +52,12 @@ struct
                    | EndObj
                    | StartArr
                    | EndArr
-                   | String  of string
-                   (*
+                   | String of string
                    | Number of IEEEReal.decimal_approx
-                   | True
-                   | False 
+                   | Bool   of bool
                    | Null
-                   ToDo *)
 
-    (* Принимает строку. Возвращает список токенов и хвост. *)
+    (* Accepts a string and  returns a tokens list and a tail. *)
     fun lex s =
       let
 
@@ -76,7 +74,7 @@ struct
 
         fun scanString getc strm =
           let
-            fun loop cs strm = 
+            fun loop cs strm =
               case getc strm of NONE => NONE | SOME (c, strm) =>
               case c of
                    #"\\" => (case getc strm of NONE => NONE | SOME (c', strm) => loop (c'::c::cs) strm)
@@ -86,7 +84,19 @@ struct
             loop [] strm
           end
 
-        val scanNumber = IEEEReal.scan
+
+        (* compare and return if match. It is copy from Scancom *)
+        fun compare s []     getc strm = SOME (s, strm)
+          | compare s (h::t) getc strm =
+              case getc strm of
+                   NONE           => NONE
+                 | SOME (c, strm) =>
+                     if c = h
+                     then compare s t getc strm
+                     else NONE
+
+        fun takeStr s = let val e = String.explode s in compare s e end
+
 
         fun scan tokens getc strm =
           let
@@ -98,10 +108,16 @@ struct
                | #"}"  => scan (EndObj::tokens)   getc strm_n
                | #"["  => scan (StartArr::tokens) getc strm_n
                | #"]"  => scan (EndArr::tokens)   getc strm_n
+               | #"\"" => (case scanString getc strm_n of SOME (s, strm_n) => scan ((String s)::tokens) getc strm_n | NONE => tail tokens getc strm)
                | #":"  => scan tokens getc strm_n
-               | #"\"" => (case scanString getc strm_n of NONE => tail tokens getc strm | SOME (s, strm_n) => scan ((String s)::tokens) getc strm_n)
                | #","  => scan tokens getc strm_n
-               | _     => tail tokens getc strm
+               | _     => (
+                 case IEEEReal.scan   getc strm of SOME (n, strm) => scan ((Number n)::tokens)   getc strm | NONE =>
+                 case takeStr "true"  getc strm of SOME (n, strm) => scan ((Bool true)::tokens)  getc strm | NONE =>
+                 case takeStr "false" getc strm of SOME (n, strm) => scan ((Bool false)::tokens) getc strm | NONE =>
+                 case takeStr "null"  getc strm of SOME (n, strm) => scan (Null::tokens)         getc strm | NONE =>
+                 tail tokens getc strm
+               )
           end
 
       in
@@ -110,37 +126,19 @@ struct
 
     fun show ts =
       let
-        fun show' StartObj   = "StartObj"
-          | show' EndObj     = "EndObj"
-          | show' StartArr   = "StartArr"
-          | show' EndArr     = "EndArr"
-          | show' (String s) = ("String \"" ^ s ^ "\"")
+        fun show' StartObj     = "StartObj"
+          | show' EndObj       = "EndObj"
+          | show' StartArr     = "StartArr"
+          | show' EndArr       = "EndArr"
+          | show' (String s)   = "String \"" ^ s ^ "\""
+          | show' (Number n)   = IEEEReal.toString n
+          | show' (Bool true)  = "True"
+          | show' (Bool false) = "False"
+          | show' Null         = "Null"
       in
         String.concatWith ", " (List.map show' ts)
       end
   end
-
-
-  fun encode (Object l) = "{ " ^ (String.concatWith ", " (List.map (fn(k,v) => ("\"" ^ String.toCString k) ^ "\"" ^ " : " ^ (encode v) ) l)) ^ " }"
-    | encode (Array  l) = "[ " ^ (String.concatWith ", " (List.map encode l)) ^ " ]"
-    | encode (String s) = "\"" ^ String.toCString s ^ "\""
-  (*
-    | encode (Number n) = IEEEReal.toString n
-    | encode (True    ) = "True"
-    | encode (False   ) = "False"
-    | encode (Null    ) = "Null"
-  *)
-
-
-  fun show (Object l) = "Object [" ^ (String.concatWith ", " (List.map (fn(k,v) => ("(\"" ^ String.toCString k) ^ "\"" ^ ", " ^ (show v) ^ ")" ) l)) ^ "]"
-    | show (Array  l) = "Array [" ^ (String.concatWith ", " (List.map show l)) ^ "]"
-    | show (String s) = "String \"" ^ String.toCString s ^ "\""
-  (*
-    | show (Number n) = "Number " ^ IEEEReal.toString n
-    | show (True    ) = "True"
-    | show (False   ) = "False"
-    | show (Null    ) = "Null"
-  *)
 
 
   structure Parser =
@@ -150,7 +148,7 @@ struct
 
       fun ht []      = raise Json "parse ht"
         | ht (x::xs) = (x, xs)
-      
+
       fun parse (ts:L.Token list) : (Value * L.Token list) =
         let
           val (k, ts) = ht ts
@@ -159,15 +157,18 @@ struct
                L.StartObj => let val (v, ts) = parseObj ts in ((Object v), ts) end
              | L.StartArr => let val (v, ts) = parseArr ts in ((Array v),  ts) end
              | L.String s => ((String s), ts)
+             | L.Number n => (Number n, ts)
+             | L.Bool b   => (Bool b, ts)
+             | L.Null     => (Null, ts)
              | _          => raise Json "parse"
         end
-      
+ 
       and parseObj (ts:L.Token list) : ((string * Value) list * L.Token list) =
         let
           val (k, ts) = ht ts
         in
           if k = L.EndObj then ([], ts) else
-          let 
+          let
             val k = case k of L.String s => s | _ => raise Json "parse Obj"
             val (v, ts) = parse ts
           in
@@ -176,7 +177,7 @@ struct
             else let val (z, ts) = parseObj(ts) in ((k, v)::z, ts) end
           end
         end
-      
+
       and parseArr (ts:L.Token list) : (Value list * L.Token list) =
         let
           val (v, ts') = ht ts
@@ -195,7 +196,27 @@ struct
     end
   end
 
-  fun decode s = case Lexer.lex s of 
+
+  fun decode s = case Lexer.lex s of
                       NONE         => raise Json "lexer"
                     | SOME (ts, _) => let val (j, _) = Parser.parse ts in j end
+
+
+  fun encode (Object l) = "{ " ^ (String.concatWith ", " (List.map (fn (k, v) => ("\"" ^ String.toCString k) ^ "\"" ^ " : " ^ (encode v) ) l)) ^ " }"
+    | encode (Array  l) = "[ " ^ (String.concatWith ", " (List.map encode l)) ^ " ]"
+    | encode (String s) = "\"" ^ String.toCString s ^ "\""
+    | encode (Number n) = IEEEReal.toString n
+    | encode (Bool true)  = "true"
+    | encode (Bool false) = "false"
+    | encode Null         = "null"
+
+
+  fun show (Object l) = "Object [" ^ (String.concatWith ", " (List.map (fn (k, v) => ("(\"" ^ String.toCString k) ^ "\"" ^ ", " ^ (show v) ^ ")" ) l)) ^ "]"
+    | show (Array  l) = "Array [" ^ (String.concatWith ", " (List.map show l)) ^ "]"
+    | show (String s) = "String \"" ^ String.toCString s ^ "\""
+    | show (Number n) = "Number (valOf (IEEEReal.fromString \"" ^ IEEEReal.toString n ^ "\"))"
+    | show (Bool true)  = "Bool true"
+    | show (Bool false) = "Bool false"
+    | show Null         = "Null"
+
 end

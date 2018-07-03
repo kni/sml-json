@@ -1,4 +1,13 @@
 JSON lexer and parser for Standard ML
 *************************************
 
-It is draft!
+  datatype Value = Array  of Value list
+                 | Object of (string * Value) list
+                 | String of string
+                 | Number of IEEEReal.decimal_approx
+                 | Bool of bool
+                 | Null
+
+  val decode: string -> Value
+  val encode: Value -> string
+  val show:   Value -> string (* produce SML code *)
