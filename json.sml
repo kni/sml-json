@@ -18,14 +18,14 @@ sig
                  | Object of (string * Value) list
                  | String of string
 
-  val decode: string -> Value
-  val encode: Value -> string
-  val show:   Value -> string
-
   structure Parser:
   sig
     val parse: Lexer.Token list -> Value * Lexer.Token list
   end
+
+  val decode: string -> Value
+  val encode: Value -> string
+  val show:   Value -> string
 end
 
 structure JSON :> JSON =
