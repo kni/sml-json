@@ -6,35 +6,41 @@ local open Lexer in
   val ts = [StartObj, String "a", String "b", EndObj, StartObj, String "c", String "d", EndObj]
 end
 
+
+fun is g e name =
+  if String.compare (g, e) = General.EQUAL
+  then print ("OK: " ^ name ^ "\n")
+  else print ("NOT OK: " ^ name ^ " (got: '" ^ g ^ "', expected: '" ^ e ^ "')\n")
+
+
 open Parser
 
-fun printJSON j = print ((encode j) ^ "\n")
 
 val (j, ts) = parse ts
-val _ = printJSON j
+val str = encode j
+val _ = is str "{ \"a\" : \"b\" }" "parse first"
+
 
 val (j, ts) = parse ts
-val _ = printJSON j
+val str = encode j
+val _ = is str "{ \"c\" : \"d\" }" "parse second"
+
 val _ = print "\n"
 
+
+val decodeAndEncode = encode o decode
+
+
 val s = "{ \"a\" : \"A\", \"b\" : { \"b1\" : \"B1\", \"b2\" : \"B2\" }, \"c\" : [ \"c1\", \"c2\" ], \"d\" : \"D\" }"
-val _ = print (s ^ "\n")
-val j = decode s
-val _ = printJSON j
+val _ = is (decodeAndEncode s) s "decodeAndEncode"
 
 
 val s = "[ { \"a\" : \"A\" }, { \"b\" : { \"b1\" : \"B1\", \"b2\" : \"B2\" }, \"c\" : [ \"c1\", \"c2\" ], \"d\" : \"D\" } ]"
-val _ = print (s ^ "\n")
-val j = decode s
-val _ = printJSON j
-val _ = print "\n"
+val _ = is (decodeAndEncode s) s "decodeAndEncode"
 
 
 val s = "{ \"a\" : \"A\", \"b\" : { \"b1\" : \"B1\" }, \"c\" : [ \"c1\" ] }"
-val _ = print (s ^ "\n")
-val _ = print (show (decode s))
-val _ = print "\n"
+val _ = is (decodeAndEncode s) s "decodeAndEncode"
 
 val j = Object [("a", String "A"), ("b", Object [("b1", String "B1")]), ("c", Array [String "c1"])]
-val _ = printJSON j
-val _ = print "\n"
+val _ = is (encode j) s "encode"
