@@ -46,6 +46,27 @@ struct
                  | Bool   of bool
                  | Null
 
+  local
+      fun dodigits [] = ""
+        | dodigits (a::b) = Int.toString a ^ dodigits b
+
+      fun dozero n = "" ^ CharVector.tabulate (n, fn _ => #"0")
+  in
+      fun numberToString {class, sign=true, digits, exp} = (* Sign bit set *)
+              "~" ^ numberToString {class=class, sign=false, digits=digits, exp=exp}
+        | numberToString {class=IEEEReal.NAN, ...} = "nan"
+        | numberToString {class=IEEEReal.INF, ...} = "inf"
+        | numberToString {class=IEEEReal.ZERO, ...} = "0"
+        | numberToString (n as {digits, exp, ...}) = (* NORMAL or SUBNORMAL *)
+           let
+            val dl = List.length digits
+          in
+            if dl = exp then dodigits digits else
+            if dl < exp then dodigits digits ^ dozero (exp - dl) else
+            "0." ^ dodigits digits ^ (if exp = 0 then "" else "E"^(Int.toString exp))
+          end
+  end
+
   structure Lexer =
   struct
     datatype Token = StartObj
@@ -131,7 +152,7 @@ struct
           | show' StartArr     = "StartArr"
           | show' EndArr       = "EndArr"
           | show' (String s)   = "String \"" ^ s ^ "\""
-          | show' (Number n)   = IEEEReal.toString n
+          | show' (Number n)   = numberToString n
           | show' (Bool true)  = "True"
           | show' (Bool false) = "False"
           | show' Null         = "Null"
@@ -162,7 +183,7 @@ struct
              | L.Null     => (Null, ts)
              | _          => raise Json "parse"
         end
- 
+
       and parseObj (ts:L.Token list) : ((string * Value) list * L.Token list) =
         let
           val (k, ts) = ht ts
@@ -205,7 +226,7 @@ struct
   fun encode (Object l) = "{ " ^ (String.concatWith ", " (List.map (fn (k, v) => ("\"" ^ String.toCString k) ^ "\"" ^ " : " ^ (encode v) ) l)) ^ " }"
     | encode (Array  l) = "[ " ^ (String.concatWith ", " (List.map encode l)) ^ " ]"
     | encode (String s) = "\"" ^ String.toCString s ^ "\""
-    | encode (Number n) = IEEEReal.toString n
+    | encode (Number n) = numberToString n
     | encode (Bool true)  = "true"
     | encode (Bool false) = "false"
     | encode Null         = "null"
@@ -214,7 +235,7 @@ struct
   fun show (Object l) = "Object [" ^ (String.concatWith ", " (List.map (fn (k, v) => ("(\"" ^ String.toCString k) ^ "\"" ^ ", " ^ (show v) ^ ")" ) l)) ^ "]"
     | show (Array  l) = "Array [" ^ (String.concatWith ", " (List.map show l)) ^ "]"
     | show (String s) = "String \"" ^ String.toCString s ^ "\""
-    | show (Number n) = "Number (valOf (IEEEReal.fromString \"" ^ IEEEReal.toString n ^ "\"))"
+    | show (Number n) = "Number (valOf (IEEEReal.fromString \"" ^ numberToString n ^ "\"))"
     | show (Bool true)  = "Bool true"
     | show (Bool false) = "Bool false"
     | show Null         = "Null"

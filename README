@@ -1,5 +1,7 @@
-JSON lexer and parser for Standard ML
-*************************************
+JSON for Standard ML
+********************
+
+JSON lexer and parser, decoder and encoder for Standard ML
 
   datatype Value = Array  of Value list
                  | Object of (string * Value) list
